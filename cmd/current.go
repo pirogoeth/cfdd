@@ -19,7 +19,7 @@ var CurrentCmd cli.Command = cli.Command{
 	Flags: []cli.Flag{
 		cli.BoolFlag{
 			Name:  "check-interface",
-			Usage: "Compare the DNS values against local interface values",
+			Usage: "Compare the DNS values against local interface values. If no update is needed, returns non-zero.",
 		},
 	},
 	Action: current,
@@ -84,6 +84,8 @@ func current(ctx *cli.Context) error {
 
 	fmt.Println()
 
+	needsUpdate := false
+
 	if checkIface {
 		expected, err := util.GetAddressesForInterface(ifaceName)
 		if err != nil {
@@ -94,6 +96,7 @@ func current(ctx *cli.Context) error {
 		for _, eip := range expected {
 			if len(actual) == 0 {
 				fmt.Printf(" - %s\n", util.Error(eip.String()))
+				needsUpdate = true
 				continue
 			}
 
@@ -105,11 +108,16 @@ func current(ctx *cli.Context) error {
 				if aip.Equal(eip) {
 					fmt.Printf(" - %s\n", util.Okay(eip.String()))
 				} else {
+					needsUpdate = true
 					fmt.Printf(" - %s\n", util.Warn(eip.String()))
 				}
 			}
 		}
 		fmt.Println()
+
+		if !needsUpdate {
+			return cli.NewExitError("No update needed", 1)
+		}
 	}
 
 	return nil

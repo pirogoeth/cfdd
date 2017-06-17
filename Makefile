@@ -6,7 +6,7 @@ GITHUB_REPO=cfdd
 
 UPSTREAM=$(GITHUB_ORG)/$(GITHUB_REPO)
 
-VERSION=0.1.0
+VERSION=0.1.1
 SHA=$(shell git rev-parse HEAD | cut -b1-9)
 
 LDFLAGS="-X main.Version=$(VERSION) -X main.BuildHash=$(SHA)"

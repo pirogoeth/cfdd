@@ -1,0 +1,17 @@
+[Unit]
+Description=Cloudflare Dynamic DNS Updater
+Requires=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=/usr/local/bin/cfdd current --check-interface
+ExecStart=/usr/local/bin/cfdd update
+Environment=CF_EMAIL=some-user@gmail.com
+Environment=CF_TOKEN=some-global-api-token
+Environment=DOMAIN=example.org
+Environment=RECORD_NAME=service
+Environment=INTERFACE=eth0
+
+[Install]
+WantedBy=multi-user.target
