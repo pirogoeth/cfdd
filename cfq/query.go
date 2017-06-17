@@ -3,37 +3,54 @@ package cfq
 import (
 	"net"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/cloudflare/cloudflare-go"
 	"github.com/mailgun/holster/errors"
-	log "github.com/Sirupsen/logrus"
 
 	"github.com/pirogoeth/cfdd/util"
 )
 
-func DNSRecordToNetIP(dnames []cloudflare.DNSRecord) ([]net.IP, error) {
+func DNSRecordToNetIP(dname cloudflare.DNSRecord) (net.IP, error) {
+	ip := net.ParseIP(dname.Content)
+	if ip == nil {
+		return nil, errors.WithContext{
+			"content": dname.Content,
+		}.Error("while parsing IP addr from cloudflare DNS record")
+	}
+
+	return ip, nil
+}
+
+func DNSRecordsToNetIP(dnames []cloudflare.DNSRecord) ([]net.IP, error) {
 	var actual []net.IP
 
 	for _, rec := range dnames {
-		ip := net.ParseIP(rec.Content)
-		if ip == nil {
-			return nil, errors.WithContext{
-				"content": rec.Content,
-			}.Error("while parsing IP addr from cloudflare DNS record")
+		ip, err := DNSRecordToNetIP(rec)
+		if err != nil {
+			return nil, errors.Wrap(err, "while parsing IP addrs from DNS record list")
 		}
-
 		actual = append(actual, ip)
 	}
 
 	return actual, nil
 }
 
-func GetAddressesForZone(cfApi *cloudflare.API, zoneName, recordName string) ([]cloudflare.DNSRecord, error) {
+func GetZoneId(cfApi *cloudflare.API, zoneName string) (string, error) {
 	log.WithField("zoneName", zoneName).Debugf("Fetching zone id")
 	zoneId, err := cfApi.ZoneIDByName(zoneName)
 	if err != nil {
-		return nil, errors.WithContext{
+		return "", errors.WithContext{
 			"zoneName": zoneName,
 		}.Wrap(err, "while fetching zone id")
+	}
+
+	return zoneId, nil
+}
+
+func GetAddressesForZone(cfApi *cloudflare.API, zoneName, recordName string) ([]cloudflare.DNSRecord, error) {
+	zoneId, err := GetZoneId(cfApi, zoneName)
+	if err != nil {
+		return nil, errors.Wrap(err, "while fetching addresses for zone")
 	}
 
 	fqdn := util.BuildFQDN(recordName, zoneName)
@@ -52,8 +69,8 @@ func GetAddressesForZone(cfApi *cloudflare.API, zoneName, recordName string) ([]
 	cfA, err := cfApi.DNSRecords(zoneId, recordA)
 	if err != nil {
 		return nil, errors.WithContext{
-			"zoneName": zoneName,
-			"zoneId": zoneId,
+			"zoneName":    zoneName,
+			"zoneId":      zoneId,
 			"recordQuery": recordA,
 		}.Wrap(err, "while querying for A record")
 	}
@@ -62,8 +79,8 @@ func GetAddressesForZone(cfApi *cloudflare.API, zoneName, recordName string) ([]
 	cfA4, err := cfApi.DNSRecords(zoneId, recordA4)
 	if err != nil {
 		return nil, errors.WithContext{
-			"zoneName": zoneName,
-			"zoneId": zoneId,
+			"zoneName":    zoneName,
+			"zoneId":      zoneId,
 			"recordQuery": recordA,
 		}.Wrap(err, "while querying for AAAA record")
 	}

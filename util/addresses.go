@@ -33,3 +33,11 @@ func GetAddressesForInterface(ifaceName string) ([]net.IP, error) {
 
 	return expected, nil
 }
+
+func IsV4(addr net.IP) bool {
+	return addr.To4() != nil
+}
+
+func IsV6(addr net.IP) bool {
+	return !IsV4(addr)
+}

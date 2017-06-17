@@ -16,6 +16,7 @@ var (
 
 	commands []cli.Command = []cli.Command{
 		cmd.CurrentCmd,
+		cmd.UpdateCmd,
 	}
 )
 
@@ -33,30 +34,30 @@ func main() {
 			Usage: "Be chattier about things",
 		},
 		cli.StringFlag{
-			Name: "cf-email",
-			Usage: "Cloudflare account email address",
+			Name:   "cf-email",
+			Usage:  "Cloudflare account email address",
 			EnvVar: "CF_EMAIL",
 		},
 		cli.StringFlag{
-			Name: "cf-token",
-			Usage: "Cloudflare API token",
+			Name:   "cf-token",
+			Usage:  "Cloudflare API token",
 			EnvVar: "CF_TOKEN",
 		},
 		cli.StringFlag{
-			Name: "zone",
-			Usage: "DNS Zone domain",
+			Name:   "zone",
+			Usage:  "DNS Zone domain",
 			EnvVar: "DOMAIN",
 		},
 		cli.StringFlag{
-			Name: "record-name, rname",
-			Usage: "DNS Record name (used as 'record-name'.'zone')",
+			Name:   "record-name, rname",
+			Usage:  "DNS Record name (used as 'record-name'.'zone')",
 			EnvVar: "RECORD_NAME",
 		},
 		cli.StringFlag{
-			Name: "interface, iface",
-			Usage: "Local interface to use for addressing",
+			Name:   "interface, iface",
+			Usage:  "Local interface to use for addressing",
 			EnvVar: "INTERFACE",
-			Value: "eth0",
+			Value:  "eth0",
 		},
 	}
 

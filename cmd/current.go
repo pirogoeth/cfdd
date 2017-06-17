@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/mailgun/holster/errors"
 	log "github.com/Sirupsen/logrus"
+	"github.com/mailgun/holster/errors"
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/pirogoeth/cfdd/cfq"
@@ -12,13 +12,13 @@ import (
 )
 
 var CurrentCmd cli.Command = cli.Command{
-	Name: "current",
-	Usage: "Retrieve the current setting for the domain name",
-	Aliases: []string{"c"},
+	Name:      "current",
+	Usage:     "Retrieve the current setting for the domain name",
+	Aliases:   []string{"c"},
 	ArgsUsage: "",
 	Flags: []cli.Flag{
 		cli.BoolFlag{
-			Name: "check-interface",
+			Name:  "check-interface",
 			Usage: "Compare the DNS values against local interface values",
 		},
 	},
@@ -72,7 +72,7 @@ func current(ctx *cli.Context) error {
 	}
 
 	log.Debugf("getting IPs for dns records")
-	actual, err := cfq.DNSRecordToNetIP(records)
+	actual, err := cfq.DNSRecordsToNetIP(records)
 	if err != nil {
 		return errors.Wrap(err, "while getting IP address from DNS record")
 	}
@@ -96,7 +96,12 @@ func current(ctx *cli.Context) error {
 				fmt.Printf(" - %s\n", util.Error(eip.String()))
 				continue
 			}
+
 			for _, aip := range actual {
+				if util.IsV4(aip) != util.IsV4(eip) {
+					continue
+				}
+
 				if aip.Equal(eip) {
 					fmt.Printf(" - %s\n", util.Okay(eip.String()))
 				} else {

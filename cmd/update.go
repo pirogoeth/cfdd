@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/mailgun/holster/errors"
 	log "github.com/Sirupsen/logrus"
+	cloudflare "github.com/cloudflare/cloudflare-go"
+	"github.com/mailgun/holster/errors"
 	"gopkg.in/urfave/cli.v1"
 
 	"github.com/pirogoeth/cfdd/cfq"
@@ -12,11 +11,11 @@ import (
 )
 
 var UpdateCmd cli.Command = cli.Command{
-	Name: "update",
-	Usage: "Update the information in Cloudflare for a single domain name",
-	Aliases: []string{"up"},
+	Name:      "update",
+	Usage:     "Update the information in Cloudflare for a single domain name",
+	Aliases:   []string{"up"},
 	ArgsUsage: "",
-	Action: update,
+	Action:    update,
 }
 
 func update(ctx *cli.Context) error {
@@ -55,6 +54,11 @@ func update(ctx *cli.Context) error {
 
 	fqdn := util.BuildFQDN(recordName, zoneName)
 
+	zoneId, err := cfq.GetZoneId(cfApi, zoneName)
+	if err != nil {
+		return errors.Wrap(err, "while getting zone id during update")
+	}
+
 	log.WithFields(log.Fields{
 		"zone": zoneName,
 		"fqdn": fqdn,
@@ -64,18 +68,68 @@ func update(ctx *cli.Context) error {
 		return errors.Wrap(err, "while getting addresses for zone")
 	}
 
-	log.Debugf("getting IPs for dns records")
-	actual, err := cfq.DNSRecordToNetIP(records)
-	if err != nil {
-		return errors.Wrap(err, "while getting IP address from DNS record")
-	}
-
 	expected, err := util.GetAddressesForInterface(ifaceName)
 	if err != nil {
 		return errors.Wrap(err, "while getting addresses for interface")
 	}
 
-	fmt.Printf("complete the impl")
+	for _, expectAddr := range expected {
+		updated := false
+
+		for _, actualRec := range records {
+			actualAddr, err := cfq.DNSRecordToNetIP(actualRec)
+			if err != nil {
+				return errors.Wrap(err, "while converting DNS record to IP addr during update")
+			}
+
+			if actualAddr.Equal(expectAddr) {
+				updated = true
+				break
+			}
+
+			if util.IsV4(actualAddr) != util.IsV4(expectAddr) {
+				continue
+			}
+
+			log.WithFields(log.Fields{
+				"zoneId":     zoneId,
+				"recordId":   actualRec.ID,
+				"recordName": actualRec.Name,
+				"recordType": actualRec.Type,
+			}).Debugf("Deleting record from zone")
+
+			cfApi.DeleteDNSRecord(zoneId, actualRec.ID)
+		}
+
+		if !updated {
+			var newRecord = cloudflare.DNSRecord{
+				Name:     recordName,
+				Content:  expectAddr.String(),
+				ZoneID:   zoneId,
+				ZoneName: zoneName,
+				Proxied:  false,
+			}
+
+			if util.IsV4(expectAddr) {
+				newRecord.Type = "A"
+			} else {
+				newRecord.Type = "AAAA"
+			}
+
+			log.WithFields(log.Fields{
+				"recordName": recordName,
+				"zoneName":   zoneName,
+				"content":    expectAddr.String(),
+			}).Debugf("Creating record in cloudflare")
+
+			resp, err := cfApi.CreateDNSRecord(zoneId, newRecord)
+			if err != nil {
+				return errors.WithContext{
+					"apiResponse": resp,
+				}.Wrapf(err, "while creating new record")
+			}
+		}
+	}
 
 	return nil
 }
