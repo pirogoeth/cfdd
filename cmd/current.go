@@ -53,6 +53,7 @@ func current(ctx *cli.Context) error {
 
 	checkIface := ctx.Bool("check-interface")
 	ifaceName := ctx.GlobalString("interface")
+	filterUnroutable := ctx.GlobalBool("filter-unroutable")
 
 	log.WithField("cfEmail", cfEmail).Debugf("getting cloudflare client")
 	cfApi, err := cfq.GetCloudflareClient(cfEmail, cfToken)
@@ -78,8 +79,13 @@ func current(ctx *cli.Context) error {
 	}
 
 	fmt.Printf("%s:\n", fqdn)
-	for _, addr := range actual {
-		fmt.Printf(" - %s\n", addr.String())
+
+	if len(actual) != 0 {
+		for _, addr := range actual {
+			fmt.Printf(" - %s\n", addr.String())
+		}
+	} else {
+		fmt.Println("No addresses exist in Cloudflare DNS for this record")
 	}
 
 	fmt.Println()
@@ -90,6 +96,14 @@ func current(ctx *cli.Context) error {
 		expected, err := util.GetAddressesForInterface(ifaceName)
 		if err != nil {
 			return errors.Wrap(err, "while getting addresses for interface")
+		}
+
+		if filterUnroutable {
+			expected = util.FilterGloballyUnroutableAddrs(expected)
+
+			if len(expected) == 0 {
+				return cli.NewExitError("No expected addresses after filtering unroutable addresses", 127)
+			}
 		}
 
 		fmt.Printf("Expected addresses [%s]:\n", ifaceName)

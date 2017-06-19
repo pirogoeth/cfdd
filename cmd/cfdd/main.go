@@ -59,6 +59,11 @@ func main() {
 			EnvVar: "INTERFACE",
 			Value:  "eth0",
 		},
+		cli.BoolFlag{
+			Name:   "filter-unroutable",
+			Usage:  "Filters unroutable addresses from the local interface",
+			EnvVar: "FILTER_UNROUTABLE",
+		},
 	}
 
 	app.Before = func(ctx *cli.Context) error {

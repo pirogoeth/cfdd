@@ -45,6 +45,7 @@ func update(ctx *cli.Context) error {
 	}
 
 	ifaceName := ctx.GlobalString("interface")
+	filterUnroutable := ctx.GlobalBool("filter-unroutable")
 
 	log.WithField("cfEmail", cfEmail).Debugf("getting cloudflare client")
 	cfApi, err := cfq.GetCloudflareClient(cfEmail, cfToken)
@@ -71,6 +72,14 @@ func update(ctx *cli.Context) error {
 	expected, err := util.GetAddressesForInterface(ifaceName)
 	if err != nil {
 		return errors.Wrap(err, "while getting addresses for interface")
+	}
+
+	if filterUnroutable {
+		expected = util.FilterGloballyUnroutableAddrs(expected)
+
+		if len(expected) == 0 {
+			return cli.NewExitError("No expected addresses after filtering unroutable addresses", 127)
+		}
 	}
 
 	for _, expectAddr := range expected {

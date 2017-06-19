@@ -6,7 +6,7 @@ GITHUB_REPO=cfdd
 
 UPSTREAM=$(GITHUB_ORG)/$(GITHUB_REPO)
 
-VERSION=0.1.1
+VERSION=0.1.2
 SHA=$(shell git rev-parse HEAD | cut -b1-9)
 
 LDFLAGS="-X main.Version=$(VERSION) -X main.BuildHash=$(SHA)"
@@ -36,7 +36,7 @@ release/cfdd-linux-amd64:
 	GOOS=linux GOARCH=amd64 go build -ldflags $(LDFLAGS) \
 		 -o release/cfdd-linux-amd64 cmd/cfdd/main.go
 
-release: build-release
+release: clean build-release
 	@if [ "$(VERSION)" = "" ]; then \
 		echo " # 'VERSION' variable not set! To preform a release do the following"; \
 		echo "  git tag v1.0.0"; \
