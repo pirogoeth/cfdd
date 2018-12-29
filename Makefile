@@ -68,6 +68,13 @@ release: clean build-release
 		--tag $(VERSION) \
 		--name "cfdd-darwin-amd64" \
 		--file release/cfdd-darwin-amd64
+	cd release && shasum -a 256 ./* | tee SHA256SUMS
+	@gothub upload \
+		--user $(GITHUB_ORG) \
+		--repo $(GITHUB_REPO) \
+		--tag $(VERSION) \
+		--name "SHA256SUMS" \
+		--file release/SHA256SUMS
 	gothub info \
 		--user $(GITHUB_ORG) \
 		--repo $(GITHUB_REPO) \
