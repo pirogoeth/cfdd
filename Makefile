@@ -6,7 +6,6 @@ GITHUB_REPO=cfdd
 
 UPSTREAM=$(GITHUB_ORG)/$(GITHUB_REPO)
 
-VERSION=0.1.3
 SHA=$(shell git rev-parse HEAD | cut -b1-9)
 
 LDFLAGS="-X main.Version=$(VERSION) -X main.BuildHash=$(SHA)"
@@ -15,8 +14,8 @@ clean:
 	rm -rf release/
 
 get-deps:
-	go get -u github.com/Masterminds/glide
-	glide install
+	go get -u github.com/itchio/gothub
+	dep ensure -v
 
 build:
 	go build -v -ldflags $(LDFLAGS) ./cmd/cfdd
@@ -45,27 +44,31 @@ release: clean build-release
 		echo ""; \
 		exit 1; \
 	fi
-	@if ! which github-release 2>&1 >> /dev/null; then \
-		echo " # github-release not found in path; install and create a github token with 'repo' access"; \
+	@if ! which gothub 2>&1 >> /dev/null; then \
+		echo " # gothub not found in path; install and create a github token with 'repo' access"; \
 		echo " # See (https://help.github.com/articles/creating-an-access-token-for-command-line-use)"; \
-		echo " go get github.com/aktau/github-release"; \
+		echo " make get-deps -OR- go get github.com/itchio/gothub"; \
 		echo " export GITHUB_TOKEN=<your-token>";\
 		echo ""; \
 		exit 1; \
 	fi
-	@github-release release \
+	@gothub release \
 		--user $(GITHUB_ORG) \
 		--repo $(GITHUB_REPO) \
 		--tag $(VERSION)
-	@github-release upload \
+	@gothub upload \
 		--user $(GITHUB_ORG) \
 		--repo $(GITHUB_REPO) \
 		--tag $(VERSION) \
 		--name "cfdd-linux-amd64" \
 		--file release/cfdd-linux-amd64
-	@github-release upload \
+	@gothub upload \
 		--user $(GITHUB_ORG) \
 		--repo $(GITHUB_REPO) \
 		--tag $(VERSION) \
 		--name "cfdd-darwin-amd64" \
 		--file release/cfdd-darwin-amd64
+	gothub info \
+		--user $(GITHUB_ORG) \
+		--repo $(GITHUB_REPO) \
+		--tag $(VERSION)
