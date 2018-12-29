@@ -3,9 +3,9 @@ package cfq
 import (
 	"net"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/mailgun/holster/errors"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/pirogoeth/cfdd/util"
 )
@@ -45,6 +45,45 @@ func GetZoneId(cfApi *cloudflare.API, zoneName string) (string, error) {
 	}
 
 	return zoneId, nil
+}
+
+func GetRecordsForZone(cfApi *cloudflare.API, zoneName string) ([]cloudflare.DNSRecord, error) {
+	zoneId, err := GetZoneId(cfApi, zoneName)
+	if err != nil {
+		return nil, errors.WithContext{
+			"zoneName": zoneName,
+		}.Wrap(err, "while querying records for zone")
+	}
+
+	log.WithField("zoneId", zoneId).Debugf("Fetching records for zone")
+	recordA := cloudflare.DNSRecord{
+		Type: "A",
+	}
+	recordA4 := cloudflare.DNSRecord{
+		Type: "AAAA",
+	}
+
+	log.WithField("recordType", "A").Debugf("Querying for records")
+	cfA, err := cfApi.DNSRecords(zoneId, recordA)
+	if err != nil {
+		return nil, errors.WithContext{
+			"zoneName":    zoneName,
+			"zoneId":      zoneId,
+			"recordQuery": recordA,
+		}.Wrap(err, "while querying for A record")
+	}
+
+	log.WithField("recordType", "AAAA").Debugf("Querying for records")
+	cfA4, err := cfApi.DNSRecords(zoneId, recordA4)
+	if err != nil {
+		return nil, errors.WithContext{
+			"zoneName":    zoneName,
+			"zoneId":      zoneId,
+			"recordQuery": recordA,
+		}.Wrap(err, "while querying for AAAA record")
+	}
+
+	return append(cfA, cfA4...), nil
 }
 
 func GetAddressesForZone(cfApi *cloudflare.API, zoneName, recordName string) ([]cloudflare.DNSRecord, error) {

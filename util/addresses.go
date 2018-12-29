@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/mailgun/holster/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 var unroutable []*net.IPNet

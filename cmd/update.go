@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	log "github.com/Sirupsen/logrus"
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/mailgun/holster/errors"
-	"gopkg.in/urfave/cli.v1"
+	log "github.com/sirupsen/logrus"
+	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/pirogoeth/cfdd/cfq"
 	"github.com/pirogoeth/cfdd/util"
@@ -26,26 +26,29 @@ func update(ctx *cli.Context) error {
 	//  rname
 	cfEmail := ctx.GlobalString("cf-email")
 	if cfEmail == "" {
-		return cli.NewExitError("`--cf-email` required for displaying current domain info!", 1)
+		return cli.NewExitError("`--cf-email` required for updating current domain info!", 1)
 	}
 
 	cfToken := ctx.GlobalString("cf-token")
 	if cfToken == "" {
-		return cli.NewExitError("`--cf-token` required for displaying current domain info!", 1)
+		return cli.NewExitError("`--cf-token` required for updating current domain info!", 1)
 	}
 
 	zoneName := ctx.GlobalString("zone")
 	if zoneName == "" {
-		return cli.NewExitError("`--zone` required for displaying current domain info!", 1)
+		return cli.NewExitError("`--zone` required for updating current domain info!", 1)
 	}
 
 	recordName := ctx.GlobalString("record-name")
 	if recordName == "" {
-		return cli.NewExitError("`--record-name` required for displaying current domain info!", 1)
+		return cli.NewExitError("`--record-name` required for updating current domain info!", 1)
 	}
 
 	ifaceName := ctx.GlobalString("interface")
 	filterUnroutable := ctx.GlobalBool("filter-unroutable")
+
+	v4Only := ctx.GlobalBool("v4-only")
+	v6Only := ctx.GlobalBool("v6-only")
 
 	log.WithField("cfEmail", cfEmail).Debugf("getting cloudflare client")
 	cfApi, err := cfq.GetCloudflareClient(cfEmail, cfToken)
@@ -120,8 +123,24 @@ func update(ctx *cli.Context) error {
 			}
 
 			if util.IsV4(expectAddr) {
+				if v6Only {
+					log.WithFields(log.Fields{
+						"recordName": recordName,
+						"zoneName":   zoneName,
+						"content":    expectAddr.String(),
+					}).Debugf("Skipping address - `--v6-only` is set")
+					continue
+				}
 				newRecord.Type = "A"
 			} else {
+				if v4Only {
+					log.WithFields(log.Fields{
+						"recordName": recordName,
+						"zoneName":   zoneName,
+						"content":    expectAddr.String(),
+					}).Debugf("Skipping address - `--v4-only` is set")
+					continue
+				}
 				newRecord.Type = "AAAA"
 			}
 

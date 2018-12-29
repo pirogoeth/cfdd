@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/mailgun/holster/errors"
-	"gopkg.in/urfave/cli.v1"
+	log "github.com/sirupsen/logrus"
+	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/pirogoeth/cfdd/cfq"
 	"github.com/pirogoeth/cfdd/util"

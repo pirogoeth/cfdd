@@ -1,9 +1,9 @@
 package cfq
 
 import (
-	"github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/mailgun/holster/errors"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 func GetCloudflareClient(cfEmail, cfToken string) (*cloudflare.API, error) {

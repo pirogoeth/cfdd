@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	log "github.com/Sirupsen/logrus"
-	"gopkg.in/urfave/cli.v1"
+	log "github.com/sirupsen/logrus"
+	cli "gopkg.in/urfave/cli.v1"
 
 	"github.com/pirogoeth/cfdd/cmd"
 )
@@ -16,6 +16,7 @@ var (
 
 	commands []cli.Command = []cli.Command{
 		cmd.CurrentCmd,
+		cmd.ListRecordsCmd,
 		cmd.UpdateCmd,
 	}
 )
@@ -64,6 +65,16 @@ func main() {
 			Usage:  "Filters unroutable addresses from the local interface",
 			EnvVar: "FILTER_UNROUTABLE",
 		},
+		cli.BoolFlag{
+			Name:   "v4-only",
+			Usage:  "Only update record with IPv4 addresses",
+			EnvVar: "V4_ONLY",
+		},
+		cli.BoolFlag{
+			Name:   "v6-only",
+			Usage:  "Only update record with IPv6 addresses",
+			EnvVar: "V6_ONLY",
+		},
 	}
 
 	app.Before = func(ctx *cli.Context) error {
@@ -73,6 +84,10 @@ func main() {
 			log.SetOutput(os.Stderr)
 			log.SetLevel(log.DebugLevel)
 			log.Debug("Verbose logging enabled")
+		}
+
+		if ctx.Bool("v4-only") && ctx.Bool("v6-only") {
+			return cli.NewExitError("--v4-only and --v6-only may not be specified together", 127)
 		}
 
 		return nil
